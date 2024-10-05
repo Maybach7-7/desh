@@ -1,3 +1,4 @@
+#include <signal.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +11,12 @@ static const char HISTORY_FILE[] = "history.txt";
 
 int is_executable(const char* path) {
     return access(path, X_OK) == 0;
+}
+
+void handle_sighup() {
+	printf("The program interrupted\n");
+	write_history(HISTORY_FILE);
+	//exit(0);
 }
 
 char* find_in_path(char* command) {
@@ -68,6 +75,8 @@ void echo_command(char* command) {
 }
 
 int main(){
+	signal(SIGINT, handle_sighup);
+	signal(SIGHUP, handle_sighup);
 	char* command;
 	read_history(HISTORY_FILE);
 	while(1){
