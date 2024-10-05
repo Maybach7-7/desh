@@ -1,3 +1,4 @@
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,6 +7,48 @@
 #include <stdbool.h>
 
 static const char HISTORY_FILE[] = "history.txt";
+
+int is_executable(const char* path) {
+    return access(path, X_OK) == 0;
+}
+
+char* find_in_path(char* command) {
+	char* path = getenv("PATH");
+	if(path == NULL) {
+		return NULL;
+	}
+
+	char* path_copy = strdup(path);
+	char* dir = strtok(path_copy, ":");
+	static char full_path[1024];
+	while(dir != NULL) {
+		snprintf(full_path, sizeof(full_path), "%s/%s", dir, command);
+		if(is_executable(full_path)) {
+			free(path_copy);
+			return full_path;
+		}
+		dir = strtok(NULL, ":");
+	}
+	free(path_copy);
+	return NULL;
+}
+
+void fork_exec(char* full_path) {
+	pid_t pid = fork();
+	if(pid==0) {
+		execlp(full_path,full_path, NULL);
+		perror("execv");
+		exit(0);
+	}
+	else if (pid < 0) {
+		perror("fork");
+		exit(1);
+	}
+	else {
+		int status;
+		waitpid(pid, &status, 0);
+	}
+}
 
 void echo_command(char* command) {
 	while(*command == ' ') {
@@ -40,9 +83,18 @@ int main(){
 		else {
 			add_history(command);
 		}
-
+		if(strncmp(command, "\\e", 2)==0){
+			char* path = getenv("PATH");
+			if(path != NULL){
+				printf("%s\n", path);
+			}
+			else printf("Variable isn't set");
+		}
 		if(strncmp(command, "echo", 4)==0) {
 			echo_command(command + 5);
+		}
+		if(find_in_path(command) != NULL) {
+			fork_exec(find_in_path(command));
 		}
 		else printf("%s\n", command);
 		free(command);
