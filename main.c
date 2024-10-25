@@ -6,6 +6,7 @@
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <stdbool.h>
+#include <stdint.h>
 
 static const char HISTORY_FILE[] = "history.txt";
 
@@ -14,9 +15,9 @@ int is_executable(const char* path) {
 }
 
 void handle_sighup() {
-	printf("The program interrupted\n");
+	printf("The program interrupted");
 	write_history(HISTORY_FILE);
-	//exit(0);
+	exit(0);
 }
 
 char* find_in_path(char* command) {
@@ -62,17 +63,66 @@ void echo_command(char* command) {
 		command++;
 	}
 
-	bool flag = true;
-	char* token = strtok(command, "\\n");
-	while(token != NULL) {
-		flag = false;
-		printf("%s\n", token);
-		token = strtok(NULL, "\\n");
+	bool flag = false;
+	bool is_last_newline = false;
+	while(*command != '\0') {
+		if(*command == '\\') {
+			flag = true;
+			is_last_newline = false;
+		} else {
+			if(*command == 'n' && flag) {
+				printf("\n");
+				is_last_newline = true;
+			} else {
+				printf("%c", *command);
+				is_last_newline = false;
+			}
+			flag = false;
+		}
+		command++;
 	}
-	if(flag) {
+
+	if(!is_last_newline) {
 		printf("\n");
 	}
 }
+
+void is_bootable_device(char* device_name) {
+	while(*device_name  == ' ') device_name++;
+
+	const char* root = "/dev/";
+	char full_path[128];
+	sprintf(full_path, "%s%s", root, device_name);
+
+	FILE* device_file = fopen(full_path, "rb");
+
+	if(device_file == NULL) {
+		printf("There is no such disk!\n");
+		return;
+	}
+
+	int position = 510;
+	if(fseek(device_file, position, SEEK_SET) != 0) {
+		printf("Error while SEEK operation!\n");
+		fclose(device_file);
+		return;
+	}
+
+	uint8_t data[2];
+	if(fread(data, 1, 2, device_file) != 2) {
+		printf("Error while fread operation\n");
+		fclose(device_file);
+		return;
+	}
+	fclose(device_file);
+
+	if(data[1]==0xaa && data[0]==0x55) {
+		printf("Disk %s is bootable\n", device_name);
+	} else {
+		printf("Disk %s isn't bootable\n", device_name);
+	}
+}
+
 
 int main(){
 	signal(SIGINT, handle_sighup);
@@ -99,10 +149,13 @@ int main(){
 			}
 			else printf("Variable isn't set");
 		}
-		if(strncmp(command, "echo", 4)==0) {
-			echo_command(command + 5);
+		else if(strncmp(command, "echo", 4)==0) {
+			echo_command(command + 4);
 		}
-		if(find_in_path(command) != NULL) {
+		else if(strncmp(command, "\\l", 2)==0){
+			is_bootable_device(command + 2);
+		}
+		else if(find_in_path(command) != NULL) {
 			fork_exec(find_in_path(command));
 		}
 		else printf("%s\n", command);
