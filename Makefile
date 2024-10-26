@@ -1,5 +1,5 @@
 SRC=main.c
-TARGET=shell
+TARGET=pkg/usr/local/bin/shell
 
 all: run
 
