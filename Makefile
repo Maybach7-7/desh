@@ -1,10 +1,10 @@
 SRC=main.c
-TARGET=pkg/usr/local/bin/shell
+TARGET=shell
 
 all: run
 
 $(TARGET): $(SRC)
-	gcc $(SRC) -o $(TARGET) -lreadline
+	gcc $(SRC) -o $(TARGET) -lreadline -fpermissive
 
 run: $(TARGET)
 	./$(TARGET)

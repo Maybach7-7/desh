@@ -7,6 +7,7 @@
 #include <readline/history.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <sys/types.h>
 
 static const char HISTORY_FILE[] = "history.txt";
 
@@ -17,7 +18,6 @@ int is_executable(const char* path) {
 void handle_sighup() {
 	printf("The program interrupted");
 	write_history(HISTORY_FILE);
-	exit(0);
 }
 
 char* find_in_path(char* command) {
