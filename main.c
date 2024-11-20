@@ -58,6 +58,16 @@ void fork_exec(char* full_path) {
 	}
 }
 
+void get_env_variable(char* command) {
+	while(*command == ' ') command++;
+
+	char* value = getenv(command);
+	if(value != NULL){
+		printf("%s = %s\n", command, value);
+		}
+	else printf("%s isn't set\n", command);
+}
+
 void echo_command(char* command) {
 	while(*command == ' ') {
 		command++;
@@ -143,11 +153,7 @@ int main(){
 			add_history(command);
 		}
 		if(strncmp(command, "\\e", 2)==0){
-			char* path = getenv("PATH");
-			if(path != NULL){
-				printf("%s\n", path);
-			}
-			else printf("Variable isn't set");
+			get_env_variable(command+2);
 		}
 		else if(strncmp(command, "echo", 4)==0) {
 			echo_command(command + 4);
