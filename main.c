@@ -8,8 +8,39 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <sys/types.h>
+#include <errno.h>
+#include <dirent.h>
 
 static const char HISTORY_FILE[] = "history.txt";
+static bool is_mounted = false;
+static const char* mount_folder = "/tmp/vfs";
+
+// void delete_folder(char* path) {
+// 	struct dirent *entry;
+// 	DIR *dp = opendir(path);
+// 
+// 	if(dp == NULL) {
+// 		perror("opendir");
+// 		return;
+// 	}
+// 	while((entry = readdir(dp) != NULL)) {
+// 		if(strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) continue;
+// 		char fullpath[1024];
+// 		snprintf(fullpath, sizeof(fullpath), "%s/%s", path, entry->d_name);
+// 		if(entry->d_type == DT_DIR) {
+// 			delete_folder(fullpath);
+// 		} else {
+// 			if(remove(fullpath) != 0) {
+// 				perror("remove");
+// 			}
+// 		}
+// 	}
+// 	closedir(dp);
+// 
+// 	if(rmdir(path)!=0) {
+// 		perror("rmdir");
+// 	}
+// }
 
 int is_executable(const char* path) {
     return access(path, X_OK) == 0;
@@ -133,8 +164,44 @@ void is_bootable_device(char* device_name) {
 	}
 }
 
+void mount_vfs() {
+	if(!is_mounted) {
+		is_mounted = true;
+		system("crontab -l >> temp.txt");
+ 		if(mkdir(mount_folder, 0755)==0) {
+ 			printf("%s folder has created!\n", mount_folder);
+ 		}
+ 		else printf("%s hasn't created!");
+		system("./vfs.out /tmp/vfs");
+		remove("temp.txt");
+		printf("%s has mounted!\n", mount_folder);
+	} else {
+		printf("%s has already mounted!\n", mount_folder);
+	}
+}
+
+void unmount_vfs() {
+	if(is_mounted){
+		if(system("fusermount -u /tmp/vfs")==0) {
+			printf("%s successfully unmounted!\n", mount_folder);
+			is_mounted = false;
+			char fullpath[256];
+			sprintf(fullpath, "%s/cron.txt", mount_folder);
+
+			if(rmdir(mount_folder)==0) {
+				printf("%s has been deleted!\n", mount_folder);
+			} else printf("Error occured while deleting %s!\n", mount_folder);
+			printf("VFS has been deleted!\n");
+		}
+		else printf("An error occured while mounting %s\n", mount_folder);
+	}
+}
+
+
+
 
 int main(){
+	atexit(unmount_vfs);
 	signal(SIGINT, handle_sighup);
 	signal(SIGHUP, handle_sighup);
 	char* command;
@@ -157,6 +224,12 @@ int main(){
 		}
 		else if(strncmp(command, "echo", 4)==0) {
 			echo_command(command + 4);
+		}
+		else if(strncmp(command, "\\cron", 5)==0) {
+			mount_vfs();
+		}
+		else if(strncmp(command, "\\unmount", 8)==0) {
+			unmount_vfs();
 		}
 		else if(strncmp(command, "\\l", 2)==0){
 			is_bootable_device(command + 2);

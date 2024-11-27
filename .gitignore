@@ -1,3 +1,6 @@
 history.txt
-shell
+shell.*
+vfs.*
+!vfs.c
+!shell.c
 pkg/
