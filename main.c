@@ -47,8 +47,14 @@ int is_executable(const char* path) {
 }
 
 void handle_sighup() {
-	printf("The program interrupted");
+	printf("The configuration reloaded!\n");
 	write_history(HISTORY_FILE);
+}
+
+void handle_sigint() {
+	printf("The program has been interrupted!\n");
+	write_history(HISTORY_FILE);
+	exit(0);
 }
 
 char* find_in_path(char* command) {
@@ -198,11 +204,9 @@ void unmount_vfs() {
 }
 
 
-
-
 int main(){
 	atexit(unmount_vfs);
-	signal(SIGINT, handle_sighup);
+	signal(SIGINT, handle_sigint);
 	signal(SIGHUP, handle_sighup);
 	char* command;
 	read_history(HISTORY_FILE);
